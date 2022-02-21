@@ -1,0 +1,68 @@
+[
+    {
+        "id": 0,
+        "first": "Jane",
+        "last": "Doe",
+        "phone": "1-2123458974",
+        "experience": [{
+            "company": "OrangeCart",
+            "title": "Director of Marketing",
+            "start": "2017-01-01",
+            "end": null
+        }]
+    },
+    {
+        "id": 1,
+        "first": "John",
+        "last": "Smith",
+        "phone": "1-2223458892",
+        "experience": [{
+            "company": "KiwiCart",
+            "title": "Data Architect",
+            "start": "2014-05-01",
+            "end": "2017-05-05"
+        },
+        {
+            "company": "OrangeCart",
+            "title": "Senior Data Architect",
+            "start": "2017-05-06",
+            "end": null
+        }]
+    },
+    {
+        "id": 2,
+        "first": "Aloy",
+        "last": "Sobeck",
+        "phone": null,
+        "experience": [{
+            "company": "Faro Automated Solutions",
+            "title": "Nora Brave",
+            "start": "3020-01-01",
+            "end": null
+        }]
+    },
+    {
+        "id": 3,
+        "first": "Elisabet",
+        "last": "Sobeck",
+        "phone": "1-2223434753",
+        "experience": [{
+            "company": "Miriam Technologies",
+            "title": "CEO",
+            "start": "2050-05-01",
+            "end": null
+        }]
+    },
+    {
+        "id": 4,
+        "first": "Nathan",
+        "last": "Drake",
+        "phone": null,
+        "experience": [{
+            "company": "D&F Fortunes",
+            "title": "Co-owner",
+            "start": "2006-01-01",
+            "end": null
+        }]
+    }
+]
