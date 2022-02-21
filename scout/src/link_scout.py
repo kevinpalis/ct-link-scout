@@ -12,14 +12,49 @@ import sys
 import getopt
 import traceback
 
+#Temporary Views:
+# Person = data from persons.json in table form
+# Contact = data from contacts.json in table form
+
 def main(argv):
-    isVerbose = True
+    #defaults
+    isVerbose = False
+    personsJson = ""
+    contactsJson = ""
+    personId = -1
     exitCode = ReturnCodes.SUCCESS
+    
+    #Get and parse parameters
+    try:
+        opts, args = getopt.getopt(argv, "hp:c:i:v", ["personsJson=", "contactsJson=", "personId=", "verbose"])
+        #print (opts, args)
+        # No arguments supplied, show help
+        if len(args) < 1 and len(opts) < 1:
+            printUsageHelp(ReturnCodes.SUCCESS)
+    except getopt.GetoptError:
+        # print ("OptError: %s" % (str(e1)))
+        exitWithException(ReturnCodes.INVALID_OPTIONS, None)
+    for opt, arg in opts:
+        if opt == '-h':
+            printUsageHelp(ReturnCodes.SUCCESS)
+        elif opt in ("-p", "--personsJson"):
+            personsJson = arg
+        elif opt in ("-c", "--contactsJson"):
+            contactsJson = arg
+        elif opt in ("-i", "--personId"):
+            personId = arg
+        elif opt in ("-v", "--verbose"):
+            isVerbose = True
+
     #initialize spark session
     spark = SparkSession.builder.master("local[*]").appName("LinkScout").getOrCreate()
 
-    path = "../input/part1_in.json"
-    res = loadPersonData(spark, path, isVerbose)
+    personsJson = "../input/part1_in.json"
+    res = loadPersonData(spark, personsJson, isVerbose)
+    query = spark.sql("select first, last, experience.company, experience.start FROM person WHERE id = 1")
+    if isVerbose:
+        query.show()
+
     if res is not ReturnCodes.SUCCESS:
         exitWithException(res, spark)
 
@@ -45,7 +80,8 @@ def loadPersonData(spark, filePath, isVerbose):
         df1.printSchema()
     # Creates a temporary view using the DataFrame
     df1.createOrReplaceTempView("person")
-    query = spark.sql("select first, last, experience.company, experience.start FROM person WHERE phone IS NOT null")
+    pid = "1"
+    query = spark.sql("select first, last, experience.company, experience.start FROM person WHERE id ="+pid)
     if isVerbose:
         query.show()
     #validations
@@ -68,6 +104,23 @@ def exitWithException(eCode, spark):
         LSUtility.printError(e1.message)
         #traceback.print_exc()
         sys.exit(eCode)
+
+def printUsageHelp(eCode):
+	print (eCode)
+	print ("python3 link_scout.py -p <personsJson:string> -c <contactsJson:string> -i <personId:int>")
+	print ("\t-h = Usage help")
+	print ("\t-p or --personsJson = (OPTIONAL) Path to the Json file with persons data. Default (if unset): persons.json in current directory")
+	print ("\t-c or --contactsJson = (OPTIONAL) Path to the Json file with contacts data. Default (if unset): contacts.json in current directory")
+	print ("\t-i or --personId = The ID of the person you want to search connections of.")
+	print ("\t-v or --verbose = (OPTIONAL) Print the status of LS execution in more detail.")
+	if eCode == ReturnCodes.SUCCESS:
+		sys.exit(eCode)
+	try:
+		raise GQLException(eCode)
+	except GQLException as e1:
+		print (e1.message)
+		traceback.print_exc()
+		sys.exit(eCode)
 
 if __name__ == "__main__":
 	main(sys.argv[1:])
