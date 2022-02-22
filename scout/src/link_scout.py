@@ -69,17 +69,30 @@ def main(argv):
 
     connections = set()
     connections = findConnectionsByExp(spark, personId, isVerbose)
-    print ("Connections after findConnectionsByExp: ")
-    print (connections)
+    if isVerbose:
+        print ("Connections found by work experience: ")
+        print (connections)
     phoneConn = set()
     phoneConn = findConnectionsByContacts(spark, personId, isVerbose)
-    #debug
-    # pid = "1"
-    # query = spark.sql("select first, last, experience.company, experience.start FROM person WHERE id ="+pid)
-    # if isVerbose:
-    #     query.show()
 
-   
+    connections.update(phoneConn)
+    if isVerbose:
+        print ("Connections found by phone number: ")
+        print (phoneConn)
+        print ("\n")     
+    printConnections(spark, connections, isVerbose)
+    if spark is not None: 
+            spark.stop()
+
+def printConnections(spark, connections, isVerbose):
+    conn = spark.sql("select id, first, last from person where id in "+str(tuple(connections)))
+    #prettier print:
+    #print ("Connections found:")
+    #conn.show()
+    connList = conn.collect()
+    for c in connList:
+        print (str(c.id)+": "+c.first+" "+c.last)
+
 def loadContactData(spark, filePath, isVerbose):
 
      # Define schema
@@ -149,14 +162,11 @@ def findConnectionsByContacts(spark, personId, isVerbose):
     #phoneNum = fullNum.split("-")[1].strip()
     #remove country code (as it's irrelevant) and trailing spaces so we can do phone matching
     phoneNum = fullNum.replace("1-", "").strip()
-    print("Own phone number: "+phoneNum)
     #get the phone numbers in the contacts list of our person
     ownContacts = spark.sql("select phone from contact where owner_id ="+personId).collect()
     #get the phone numbers in other people's contact list
     othersContacts = spark.sql("select owner_id, phone from contact where owner_id !="+personId).collect()
-    
-    if isVerbose:
-        print("Looking for connections using contacts: ")
+
     #First: look for own phone number's presence in other people's contact list
     if phoneNum is not None:
         for oc in othersContacts:
@@ -164,7 +174,6 @@ def findConnectionsByContacts(spark, personId, isVerbose):
                 #print("Comparing other_id:"+str(oc.owner_id)+" number: "+p["number"])
                 #print("Normalized own_number="+phoneNum+" and other_number="+normalizePhoneNumber(p["number"]))
                 if phoneNum == normalizePhoneNumber(p["number"]):
-                    print("Found a contact!")
                     personsConnected.add(oc.owner_id)
     #Second: look for the id of the people in own's contact list
     for c in ownContacts:
@@ -172,7 +181,7 @@ def findConnectionsByContacts(spark, personId, isVerbose):
             #print("Contact = "+normalizePhoneNumber(q["number"]))
             match = spark.sql("select id from person where phone like '%"+normalizePhoneNumber(q["number"])+"'").first()
             if match is not None:
-                print("Found a match! ID="+str(match.id))
+                #print("Found a match! ID="+str(match.id))
                 personsConnected.add(match.id)
     return personsConnected
 
@@ -181,7 +190,7 @@ def findConnectionsByExp(spark, personId, isVerbose):
     exp = spark.sql("select experience from person where id ="+personId).first()
     others = spark.sql("select id, experience from person where id !="+personId).collect()
     #print(others)
-    print("Looking for connections using experience: ")
+    #print("Looking for connections using experience: ")
     #iterate through the person's work-experience
     for xp in exp.experience:
         #print("Company: "+xp["company"]+" Date:"+str(xp["start"])+" to "+str(xp["end"])) #debug
