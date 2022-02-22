@@ -62,10 +62,17 @@ def main(argv):
     
     res2 = loadContactData(spark, contactsJson, isVerbose)
     if res2 is not ReturnCodes.SUCCESS:
-        exitWithException(res, spark)
+        exitWithException(res2, spark)
     
-    connectionsList = []
-    connectionsList = findConnectionsByExp(spark, personId, isVerbose)
+    if isVerbose:
+        showTempTables(spark)
+
+    connections = set()
+    connections = findConnectionsByExp(spark, personId, isVerbose)
+    print ("Connections after findConnectionsByExp: ")
+    print (connections)
+    phoneConn = set()
+    phoneConn = findConnectionsByContacts(spark, personId, isVerbose)
     #debug
     # pid = "1"
     # query = spark.sql("select first, last, experience.company, experience.start FROM person WHERE id ="+pid)
@@ -91,16 +98,10 @@ def loadContactData(spark, filePath, isVerbose):
     except Exception as e:
         print(e)
         return ReturnCodes.ERROR_PARSING_JSON
-
-    if isVerbose: 
-        df.show() 
     df.createOrReplaceTempView("contact")
     #Validations:
-    #Check for duplicated personID, ie. non-unique entries makes the dataset invalid
+    #Check for duplicated id, ie. non-unique entries makes the dataset invalid
     idDups = spark.sql("select count(*) - count(distinct id) as ctr from contact").first()
-    #d = query.rdd.map(lambda p: p.dups).collect()
-    #print (idDups)
-    #print (type(idDups.ctr))
     if idDups.ctr > 0:
         return ReturnCodes.ID_DUPLICATED
     else: 
@@ -127,10 +128,6 @@ def loadPersonData(spark, filePath, isVerbose):
     except Exception as e:
         print(e)
         return ReturnCodes.ERROR_PARSING_JSON
-
-    if isVerbose: 
-        df1.show()  
-        #df1.printSchema()
     # Creates a temporary view using the DataFrame
     df1.createOrReplaceTempView("person")
     
@@ -145,17 +142,49 @@ def loadPersonData(spark, filePath, isVerbose):
     else: 
         return ReturnCodes.SUCCESS
 
+def findConnectionsByContacts(spark, personId, isVerbose):
+    personsConnected = set()
+    #get the phone number of our person
+    fullNum = spark.sql("select phone from person where id ="+personId).first().phone
+    #phoneNum = fullNum.split("-")[1].strip()
+    #remove country code (as it's irrelevant) and trailing spaces so we can do phone matching
+    phoneNum = fullNum.replace("1-", "").strip()
+    print("Own phone number: "+phoneNum)
+    #get the phone numbers in the contacts list of our person
+    ownContacts = spark.sql("select phone from contact where owner_id ="+personId).collect()
+    #get the phone numbers in other people's contact list
+    othersContacts = spark.sql("select owner_id, phone from contact where owner_id !="+personId).collect()
+    
+    if isVerbose:
+        print("Looking for connections using contacts: ")
+    #First: look for own phone number's presence in other people's contact list
+    if phoneNum is not None:
+        for oc in othersContacts:
+            for p in oc.phone:
+                #print("Comparing other_id:"+str(oc.owner_id)+" number: "+p["number"])
+                #print("Normalized own_number="+phoneNum+" and other_number="+normalizePhoneNumber(p["number"]))
+                if phoneNum == normalizePhoneNumber(p["number"]):
+                    print("Found a contact!")
+                    personsConnected.add(oc.owner_id)
+    #Second: look for the id of the people in own's contact list
+    for c in ownContacts:
+        for q in c.phone:
+            #print("Contact = "+normalizePhoneNumber(q["number"]))
+            match = spark.sql("select id from person where phone like '%"+normalizePhoneNumber(q["number"])+"'").first()
+            if match is not None:
+                print("Found a match! ID="+str(match.id))
+                personsConnected.add(match.id)
+    return personsConnected
+
 def findConnectionsByExp(spark, personId, isVerbose):
-    personsConnected = []
+    personsConnected = set()
     exp = spark.sql("select experience from person where id ="+personId).first()
     others = spark.sql("select id, experience from person where id !="+personId).collect()
     #print(others)
-    if isVerbose:
-        print("Looking for connections using experience: ")
+    print("Looking for connections using experience: ")
     #iterate through the person's work-experience
     for xp in exp.experience:
-        if isVerbose:
-            print("Company: "+xp["company"]+" Date:"+str(xp["start"])+" to "+str(xp["end"]))
+        #print("Company: "+xp["company"]+" Date:"+str(xp["start"])+" to "+str(xp["end"])) #debug
         #For each company our person worked for, look through the others' work experience to find fuzzy matches
         #Note that we are only taking matches that have a 90% ratio, allowing for some mistakes in spaces and punctuations
         for o in others:
@@ -176,10 +205,14 @@ def findConnectionsByExp(spark, personId, isVerbose):
                     diff = (earliestEnd - latestStart).days + 1
                     overlap = max(0, diff)
                     if overlap > 182: #6 months = 182.5 days
-                        if isVerbose:
-                            print("Found a connection: ID="+str(o.id)+" Company="+x["company"]+" Overlap="+str(overlap)+" days")
-                        personsConnected.append(o.id)
+                        #print("Found a connection: ID="+str(o.id)+" Company="+x["company"]+" Overlap="+str(overlap)+" days") #debug
+                        personsConnected.add(o.id)
     return personsConnected
+
+#remove special characters, spaces, and only returns the 10-digit phone number without the country code
+def normalizePhoneNumber(num):
+    phoneNum = ''.join(i for i in num if i.isalnum())
+    return phoneNum[-10:]
 
 def exitWithException(eCode, spark):
     try:
@@ -203,11 +236,17 @@ def printUsageHelp(eCode):
 	if eCode == ReturnCodes.SUCCESS:
 		sys.exit(eCode)
 	try:
-		raise GQLException(eCode)
-	except GQLException as e1:
+		raise LSException(eCode)
+	except LSException as e1:
 		print (e1.message)
 		traceback.print_exc()
 		sys.exit(eCode)
+
+def showTempTables(spark):
+    print("Person:")
+    spark.sql("select * from person").show()
+    print("Contact:")
+    spark.sql("select * from contact").show()
 
 if __name__ == "__main__":
 	main(sys.argv[1:])

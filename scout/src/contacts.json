@@ -58,5 +58,54 @@
             "number": "2226534753",
             "type": "cell"
         }]
+    },
+    {
+        "id": 5,
+        "owner_id": 4,
+        "contact_nickname": "Yuf",
+        "phone": [{
+            "number": "(212) 245-1994",
+            "type": "landline"
+        }, {
+            "number": "2356438892",
+            "type": "cell"
+        }]
+    },
+    {
+        "id": 6,
+        "owner_id": 9,
+        "contact_nickname": "Hun",
+        "phone": [{
+            "number": "(212) 215-8894",
+            "type": "landline"
+        }, {
+            "number": "+1 4443473475",
+            "type": "cell"
+        }]
+    },
+    {
+        "id": 7,
+        "owner_id": 4,
+        "contact_nickname": "Bro",
+        "phone": [{
+            "number": "(212) 215-2394",
+            "type": "landline"
+        }, {
+            "number": "+1 2256858892",
+            "type": "cell"
+        }]
+    },
+    {
+        "id": 8,
+        "owner_id": 6,
+        "contact_nickname": "Big Guy",
+        "phone": [{
+            "number": "(212) 215-4594",
+            "type": "landline"
+        }, {
+            "number": "+12256858892",
+            "type": "cell"
+        }]
     }
+
 ]
