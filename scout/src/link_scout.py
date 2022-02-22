@@ -23,7 +23,7 @@ def main(argv):
     #defaults
     isVerbose = False
     personsJson = ""
-    contactsJson = ""
+    contactsJson = "contacts.json"
     personId = -1
     personsJson = "persons.json"
     exitCode = ReturnCodes.SUCCESS
@@ -60,6 +60,10 @@ def main(argv):
     if res is not ReturnCodes.SUCCESS:
         exitWithException(res, spark)
     
+    res2 = loadContactData(spark, contactsJson, isVerbose)
+    if res2 is not ReturnCodes.SUCCESS:
+        exitWithException(res, spark)
+    
     connectionsList = []
     connectionsList = findConnectionsByExp(spark, personId, isVerbose)
     #debug
@@ -69,6 +73,38 @@ def main(argv):
     #     query.show()
 
    
+def loadContactData(spark, filePath, isVerbose):
+
+     # Define schema
+    schema = StructType([
+        StructField("id",LongType(),False),
+        StructField("owner_id",LongType(),False),
+        StructField("contact_nickname",StringType(),True),
+        StructField("phone",ArrayType(StructType([
+            StructField('number', StringType(), False),
+            StructField('type', StringType(), True)
+            ])))
+    ])
+    try:
+        # Read json data to dataframe
+        df = spark.read.option("multiline","true").schema(schema).json(filePath)
+    except Exception as e:
+        print(e)
+        return ReturnCodes.ERROR_PARSING_JSON
+
+    if isVerbose: 
+        df.show() 
+    df.createOrReplaceTempView("contact")
+    #Validations:
+    #Check for duplicated personID, ie. non-unique entries makes the dataset invalid
+    idDups = spark.sql("select count(*) - count(distinct id) as ctr from contact").first()
+    #d = query.rdd.map(lambda p: p.dups).collect()
+    #print (idDups)
+    #print (type(idDups.ctr))
+    if idDups.ctr > 0:
+        return ReturnCodes.ID_DUPLICATED
+    else: 
+        return ReturnCodes.SUCCESS
 
 def loadPersonData(spark, filePath, isVerbose):
 
@@ -112,7 +148,7 @@ def loadPersonData(spark, filePath, isVerbose):
 def findConnectionsByExp(spark, personId, isVerbose):
     personsConnected = []
     exp = spark.sql("select experience from person where id ="+personId).first()
-    others = spark.sql("select id, first, last, experience from person where id !="+personId).collect()
+    others = spark.sql("select id, experience from person where id !="+personId).collect()
     #print(others)
     if isVerbose:
         print("Looking for connections using experience: ")
