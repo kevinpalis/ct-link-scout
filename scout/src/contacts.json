@@ -1,0 +1,62 @@
+[
+    {
+        "id": 0,
+        "owner_id": 0,
+        "contact_nickname": "Mom",
+        "phone": [{
+            "number": "(212) 345-8974",
+            "type": "landline"
+        }, {
+            "number": "+19173454768",
+            "type": "cell"
+        }]
+    },
+    {
+        "id": 1,
+        "owner_id": 2,
+        "contact_nickname": "JS",
+        "phone": [{
+            "number": "(222) 331-2222",
+            "type": "landline"
+        }, {
+            "number": "(222) 345-8892",
+            "type": "cell"
+        }]
+    },
+    {
+        "id": 2,
+        "owner_id": 2,
+        "contact_nickname": "Mom",
+        "phone": [{
+            "number": "(212) 345-8974",
+            "type": "landline"
+        }, {
+            "number": "+12223094753",
+            "type": "cell"
+        }]
+    },
+    {
+        "id": 3,
+        "owner_id": 4,
+        "contact_nickname": "Babe",
+        "phone": [{
+            "number": "(212) 225-8974",
+            "type": "landline"
+        }, {
+            "number": "+1 (345) 343-3253",
+            "type": "cell"
+        }]
+    },
+    {
+        "id": 4,
+        "owner_id": 4,
+        "contact_nickname": "JJ",
+        "phone": [{
+            "number": "(212) 345-8994",
+            "type": "landline"
+        }, {
+            "number": "2226534753",
+            "type": "cell"
+        }]
+    }
+]

@@ -8,6 +8,9 @@ from pyspark.sql import SparkSession
 from pyspark.sql.session import SparkSession
 from pyspark.sql.types import *
 from util.ls_utility import *
+from fuzzywuzzy import fuzz
+from datetime import datetime, date
+
 import sys
 import getopt
 import traceback
@@ -22,6 +25,7 @@ def main(argv):
     personsJson = ""
     contactsJson = ""
     personId = -1
+    personsJson = "persons.json"
     exitCode = ReturnCodes.SUCCESS
     
     #Get and parse parameters
@@ -45,18 +49,26 @@ def main(argv):
             personId = arg
         elif opt in ("-v", "--verbose"):
             isVerbose = True
-
+    #parameters validation
+    if int(personId) < 0:
+        exitWithException(ReturnCodes.ID_INVALID, None)
     #initialize spark session
     spark = SparkSession.builder.master("local[*]").appName("LinkScout").getOrCreate()
 
-    personsJson = "../input/part1_in.json"
+    
     res = loadPersonData(spark, personsJson, isVerbose)
-    query = spark.sql("select first, last, experience.company, experience.start FROM person WHERE id = 1")
-    if isVerbose:
-        query.show()
-
     if res is not ReturnCodes.SUCCESS:
         exitWithException(res, spark)
+    
+    connectionsList = []
+    connectionsList = findConnectionsByExp(spark, personId, isVerbose)
+    #debug
+    # pid = "1"
+    # query = spark.sql("select first, last, experience.company, experience.start FROM person WHERE id ="+pid)
+    # if isVerbose:
+    #     query.show()
+
+   
 
 def loadPersonData(spark, filePath, isVerbose):
 
@@ -73,31 +85,70 @@ def loadPersonData(spark, filePath, isVerbose):
             StructField('end', DateType(), True)
             ])))
     ])
-    # Read json data to dataframe
-    df1 = spark.read.option("multiline","true").schema(schema).json(filePath)
+    try:
+        # Read json data to dataframe
+        df1 = spark.read.option("multiline","true").schema(schema).json(filePath)
+    except Exception as e:
+        print(e)
+        return ReturnCodes.ERROR_PARSING_JSON
+
     if isVerbose: 
         df1.show()  
-        df1.printSchema()
+        #df1.printSchema()
     # Creates a temporary view using the DataFrame
     df1.createOrReplaceTempView("person")
-    pid = "1"
-    query = spark.sql("select first, last, experience.company, experience.start FROM person WHERE id ="+pid)
-    if isVerbose:
-        query.show()
-    #validations
+    
+    #Validations:
+    #Check for duplicated personID, ie. non-unique entries makes the dataset invalid
     idDups = spark.sql("select count(*) - count(distinct id) as ctr from person").first()
     #d = query.rdd.map(lambda p: p.dups).collect()
-    print (idDups)
-    print (type(idDups.ctr))
+    #print (idDups)
+    #print (type(idDups.ctr))
     if idDups.ctr > 0:
         return ReturnCodes.ID_DUPLICATED
-    #return ReturnCodes.INCOMPLETE_PARAMETERS #test
     else: 
         return ReturnCodes.SUCCESS
 
+def findConnectionsByExp(spark, personId, isVerbose):
+    personsConnected = []
+    exp = spark.sql("select experience from person where id ="+personId).first()
+    others = spark.sql("select id, first, last, experience from person where id !="+personId).collect()
+    #print(others)
+    if isVerbose:
+        print("Looking for connections using experience: ")
+    #iterate through the person's work-experience
+    for xp in exp.experience:
+        if isVerbose:
+            print("Company: "+xp["company"]+" Date:"+str(xp["start"])+" to "+str(xp["end"]))
+        #For each company our person worked for, look through the others' work experience to find fuzzy matches
+        #Note that we are only taking matches that have a 90% ratio, allowing for some mistakes in spaces and punctuations
+        for o in others:
+            #print("Checking person #"+str(o.id))
+            for x in o.experience:
+                #using the ratio (Levenshtein ratio) function here instead of partial_ratio or the token functions - 
+                # as rearranging words/tokens would introduce too many false matches for company names
+                ratio = fuzz.ratio(xp["company"].lower(),x["company"].lower())
+                if ratio >= 90:
+                    #print("Found possible match. r="+str(ratio)+"\n\tComparing:"+xp["company"]+ " to "+x["company"])
+                    #Found a possible match, now checking if dates in company overlapped
+                    #get the latest start date and the earliest end date
+                    latestStart = max(xp["start"], x["start"])
+                    #set end_dates to current date if null, otherwise, keep value
+                    xpEnd = date.today() if xp["end"] is None else xp["end"]
+                    xEnd = date.today() if x["end"] is None else x["end"]
+                    earliestEnd = min(xpEnd, xEnd)
+                    diff = (earliestEnd - latestStart).days + 1
+                    overlap = max(0, diff)
+                    if overlap > 182: #6 months = 182.5 days
+                        if isVerbose:
+                            print("Found a connection: ID="+str(o.id)+" Company="+x["company"]+" Overlap="+str(overlap)+" days")
+                        personsConnected.append(o.id)
+    return personsConnected
+
 def exitWithException(eCode, spark):
     try:
-        spark.stop()
+        if spark is not None: 
+            spark.stop()
         raise LSException(eCode)
     except LSException as e1:
         print("Error code: %s" % e1.code)

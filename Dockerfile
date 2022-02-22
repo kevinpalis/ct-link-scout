@@ -21,7 +21,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update -y && DEBIAN_FRONTEND=noninter
  default-jre
 
 RUN pip install --upgrade pip
-RUN pip install pyspark
+RUN pip install pyspark fuzzywuzzy python-Levenshtein
 EXPOSE 22 4040
 
 
