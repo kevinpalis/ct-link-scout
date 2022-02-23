@@ -96,6 +96,9 @@ def main(argv):
 
 #prints all connections found oredered by id in this format "id: first last"
 def printConnections(spark, connections, isVerbose):
+    if len(connections) == 0:
+        print("Person has no connections in the dataset.")
+        return
     if isVerbose:
         print("Connections found: ")
     conn = spark.sql("select id, first, last from person where id in "+str(tuple(connections))+" order by id")
