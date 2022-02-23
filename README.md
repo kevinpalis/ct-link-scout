@@ -24,6 +24,9 @@ There are two ways to run this application, in the order of preference:
 ### Run using the pre-built docker image
 
 There is a pre-built docker image in Dockerhub - which means you don't even need to pull this repository.
+steps here...
+
+#### Command line usage
 
 ### Run by building from source (ie. docker build)
 
