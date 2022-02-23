@@ -10,6 +10,7 @@ The data comes in the form of 2 JSON files: persons.json and contacts.json.
 ## Libraries required (pre-provisioned)
 
 This application utilizes the following libraries/technologies:
+
 - Pyspark = for all data processing via Apache Spark 
 - Fuzzywuzzy = for fuzzy matching (ex. using Levenshtein ratio)
 - Pytest = for unit tests and integration tests
