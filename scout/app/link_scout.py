@@ -62,49 +62,52 @@ def main(argv):
     #parameters validation
     if int(personId) < 0:
         exitWithException(ReturnCodes.ID_INVALID, None)
-    #initialize spark session
+    #initialize spark session (can be adjusted to accommodate an actual spark cluster)
     spark = SparkSession.builder.master("local[*]").appName("LinkScout").getOrCreate()
-
-    
+    #load the persons data
     res = loadPersonData(spark, personsJson, isVerbose)
     if res is not ReturnCodes.SUCCESS:
         exitWithException(res, spark)
-    
+    #load the contacts data
     res2 = loadContactData(spark, contactsJson, isVerbose)
     if res2 is not ReturnCodes.SUCCESS:
         exitWithException(res2, spark)
-    
     if isVerbose:
         showTempTables(spark)
-
+    #criterion 1: get connections by work experience
     connections = set()
     connections = findConnectionsByExp(spark, personId, isVerbose)
     if isVerbose:
         print ("Connections found by work experience: ")
         print (connections)
+    #criterion 2: get connections by contacts
     phoneConn = set()
     phoneConn = findConnectionsByContacts(spark, personId, isVerbose)
-
+    #merge 2 results sets, as they are sets, duplicates are removed
     connections.update(phoneConn)
     if isVerbose:
         print ("Connections found by phone number: ")
         print (phoneConn)
-        print ("\n")     
+        print ("\n")
+    #print final connections found
     printConnections(spark, connections, isVerbose)
     if spark is not None: 
             spark.stop()
 
+#prints all connections found oredered by id in this format "id: first last"
 def printConnections(spark, connections, isVerbose):
-    conn = spark.sql("select id, first, last from person where id in "+str(tuple(connections)))
-    #prettier print:
+    if isVerbose:
+        print("Connections found: ")
+    conn = spark.sql("select id, first, last from person where id in "+str(tuple(connections))+" order by id")
+    #prettier print (easier to look at for bigger datasets):
     #print ("Connections found:")
     #conn.show()
     connList = conn.collect()
     for c in connList:
         print (str(c.id)+": "+c.first+" "+c.last)
 
+#loads contact data from json file
 def loadContactData(spark, filePath, isVerbose):
-
      # Define schema
     schema = StructType([
         StructField("id",LongType(),False),
@@ -130,8 +133,8 @@ def loadContactData(spark, filePath, isVerbose):
     else: 
         return ReturnCodes.SUCCESS
 
+#loads person data from json file
 def loadPersonData(spark, filePath, isVerbose):
-
      # Define schema
     schema = StructType([
         StructField("id",LongType(),False),
@@ -157,19 +160,17 @@ def loadPersonData(spark, filePath, isVerbose):
     #Validations:
     #Check for duplicated personID, ie. non-unique entries makes the dataset invalid
     idDups = spark.sql("select count(*) - count(distinct id) as ctr from person").first()
-    #d = query.rdd.map(lambda p: p.dups).collect()
-    #print (idDups)
-    #print (type(idDups.ctr))
     if idDups.ctr > 0:
         return ReturnCodes.ID_DUPLICATED
     else: 
         return ReturnCodes.SUCCESS
 
+#Find connections using contacts data:
+#A person is a connection if either one has the others phone number in their list of contacts.
 def findConnectionsByContacts(spark, personId, isVerbose):
     personsConnected = set()
     #get the phone number of our person
     fullNum = spark.sql("select phone from person where id ="+personId).first().phone
-    #phoneNum = fullNum.split("-")[1].strip()
     #remove country code (as it's irrelevant) and trailing spaces so we can do phone matching
     phoneNum = fullNum.replace("1-", "").strip()
     #get the phone numbers in the contacts list of our person
@@ -181,39 +182,34 @@ def findConnectionsByContacts(spark, personId, isVerbose):
     if phoneNum is not None:
         for oc in othersContacts:
             for p in oc.phone:
-                #print("Comparing other_id:"+str(oc.owner_id)+" number: "+p["number"])
-                #print("Normalized own_number="+phoneNum+" and other_number="+normalizePhoneNumber(p["number"]))
                 if phoneNum == normalizePhoneNumber(p["number"]):
                     personsConnected.add(oc.owner_id)
     #Second: look for the id of the people in own's contact list
     for c in ownContacts:
         for q in c.phone:
-            #print("Contact = "+normalizePhoneNumber(q["number"]))
             match = spark.sql("select id from person where phone like '%"+normalizePhoneNumber(q["number"])+"'").first()
             if match is not None:
-                #print("Found a match! ID="+str(match.id))
                 personsConnected.add(match.id)
     return personsConnected
 
+#Find connections using work experience data:
+#A person is a connection if he/she worked in the same company and their timelines overlapped by at least 6 months (ie. 182.5 days)
+#For each company our person worked for, look through the others' work experience to find fuzzy matches
+#Note that we are only taking matches that have a 90% ratio, allowing for some mistakes in spaces and punctuations
 def findConnectionsByExp(spark, personId, isVerbose):
     personsConnected = set()
     exp = spark.sql("select experience from person where id ="+personId).first()
     others = spark.sql("select id, experience from person where id !="+personId).collect()
-    #print(others)
-    #print("Looking for connections using experience: ")
+
     #iterate through the person's work-experience
     for xp in exp.experience:
         #print("Company: "+xp["company"]+" Date:"+str(xp["start"])+" to "+str(xp["end"])) #debug
-        #For each company our person worked for, look through the others' work experience to find fuzzy matches
-        #Note that we are only taking matches that have a 90% ratio, allowing for some mistakes in spaces and punctuations
         for o in others:
-            #print("Checking person #"+str(o.id))
             for x in o.experience:
-                #using the ratio (Levenshtein ratio) function here instead of partial_ratio or the token functions - 
+                #using the ratio (Levenshtein) function here instead of partial_ratio or the token functions - 
                 # as rearranging words/tokens would introduce too many false matches for company names
                 ratio = fuzz.ratio(xp["company"].lower(),x["company"].lower())
                 if ratio >= 90:
-                    #print("Found possible match. r="+str(ratio)+"\n\tComparing:"+xp["company"]+ " to "+x["company"])
                     #Found a possible match, now checking if dates in company overlapped
                     #get the latest start date and the earliest end date
                     latestStart = max(xp["start"], x["start"])
@@ -233,6 +229,7 @@ def normalizePhoneNumber(num):
     phoneNum = ''.join(i for i in num if i.isalnum())
     return phoneNum[-10:]
 
+#utility method for exception handling
 def exitWithException(eCode, spark):
     try:
         if spark is not None: 
@@ -244,6 +241,7 @@ def exitWithException(eCode, spark):
         #traceback.print_exc()
         sys.exit(eCode)
 
+#prints usage help
 def printUsageHelp(eCode):
 	print (eCode)
 	print ("python3 link_scout.py -p <personsJson:string> -c <contactsJson:string> -i <personId:int>")
