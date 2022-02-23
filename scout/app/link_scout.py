@@ -1,6 +1,16 @@
 #!/usr/bin/env python3
 '''
-	This is the main module for Link-Scout
+	This is the main module for Link-Scout: takes in a person_id and searches all connections via two main criteria:
+    1. A person is a connection if he/she worked in the same company and their timelines overlapped by at least
+        6 months (ie. 182.5 days)
+    2. A person is a connection if either one has the others phone number in their list of contacts.
+
+    This utilizes the following libraries/technologies:
+    * Pyspark = for all data processing via Apache Spark 
+        - the docker container this script comes in with should already provision necessary installations
+    * Fuzzywuzzy = for fuzzy matching (ex. using Levenshtein ratio)
+
+    Run the script with -h flag for command-line usage help (ie. python3 link_scout.py -h).
     @author Kevin Palis <kevin.palis@gmail.com>
 '''
 
@@ -251,6 +261,7 @@ def printUsageHelp(eCode):
 		traceback.print_exc()
 		sys.exit(eCode)
 
+#Utility method to pretty print the two tables
 def showTempTables(spark):
     print("Person:")
     spark.sql("select * from person").show()

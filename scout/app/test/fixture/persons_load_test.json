@@ -23,7 +23,7 @@
             "end": "2017-05-05"
         },
         {
-            "company": "OrangeCart",
+            "company": "Orange Cart",
             "title": "Senior Data Architect",
             "start": "2017-05-06",
             "end": null
@@ -37,7 +37,7 @@
         "experience": [{
             "company": "Faro Automated Solutions",
             "title": "Nora Brave",
-            "start": "3020-01-01",
+            "start": "2020-01-01",
             "end": null
         }]
     },
@@ -49,7 +49,7 @@
         "experience": [{
             "company": "Miriam Technologies",
             "title": "CEO",
-            "start": "2050-05-01",
+            "start": "2020-05-01",
             "end": null
         }]
     },
@@ -57,7 +57,7 @@
         "id": 4,
         "first": "Nathan",
         "last": "Drake",
-        "phone": null,
+        "phone": "1-4443473475",
         "experience": [{
             "company": "D&F Fortunes",
             "title": "Co-owner",
@@ -113,7 +113,7 @@
         "last": "Jameson",
         "phone": "1-2226534753",
         "experience": [{
-            "company": "D&Ffortunes",
+            "company": "D&F Fortunes",
             "title": "Co-owner",
             "start": "2005-05-01",
             "end": null
@@ -130,5 +130,18 @@
             "start": "2006-01-01",
             "end": null
         }]
+    },
+    {
+        "id": 10,
+        "first": "Barret",
+        "last": "Wallace",
+        "phone": "1-2256858892",
+        "experience": [{
+            "company": "KiwiCart",
+            "title": "Software Architect",
+            "start": "2014-04-01",
+            "end": "2017-02-05"
+        }]
     }
+
 ]

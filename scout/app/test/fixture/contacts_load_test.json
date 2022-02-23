@@ -1,0 +1,111 @@
+[
+    {
+        "id": 0,
+        "owner_id": 0,
+        "contact_nickname": "Mom",
+        "phone": [{
+            "number": "(212) 345-8974",
+            "type": "landline"
+        }, {
+            "number": "+19173454768",
+            "type": "cell"
+        }]
+    },
+    {
+        "id": 1,
+        "owner_id": 2,
+        "contact_nickname": "JS",
+        "phone": [{
+            "number": "(222) 331-2222",
+            "type": "landline"
+        }, {
+            "number": "(222) 345-8892",
+            "type": "cell"
+        }]
+    },
+    {
+        "id": 2,
+        "owner_id": 2,
+        "contact_nickname": "Mom",
+        "phone": [{
+            "number": "(212) 345-8974",
+            "type": "landline"
+        }, {
+            "number": "+12223094753",
+            "type": "cell"
+        }]
+    },
+    {
+        "id": 3,
+        "owner_id": 4,
+        "contact_nickname": "Babe",
+        "phone": [{
+            "number": "(212) 225-8974",
+            "type": "landline"
+        }, {
+            "number": "+1 (345) 343-3253",
+            "type": "cell"
+        }]
+    },
+    {
+        "id": 4,
+        "owner_id": 4,
+        "contact_nickname": "JJ",
+        "phone": [{
+            "number": "(212) 345-8994",
+            "type": "landline"
+        }, {
+            "number": "2226534753",
+            "type": "cell"
+        }]
+    },
+    {
+        "id": 5,
+        "owner_id": 4,
+        "contact_nickname": "Yuf",
+        "phone": [{
+            "number": "(212) 245-1994",
+            "type": "landline"
+        }, {
+            "number": "2356438892",
+            "type": "cell"
+        }]
+    },
+    {
+        "id": 6,
+        "owner_id": 9,
+        "contact_nickname": "Hun",
+        "phone": [{
+            "number": "(212) 215-8894",
+            "type": "landline"
+        }, {
+            "number": "+1 4443473475",
+            "type": "cell"
+        }]
+    },
+    {
+        "id": 7,
+        "owner_id": 4,
+        "contact_nickname": "Bro",
+        "phone": [{
+            "number": "(212) 215-2394",
+            "type": "landline"
+        }, {
+            "number": "+1 2256858892",
+            "type": "cell"
+        }]
+    },
+    {
+        "id": 8,
+        "owner_id": 6,
+        "contact_nickname": "Big Guy",
+        "phone": [{
+            "number": "(212) 215-4594",
+            "type": "landline"
+        }, {
+            "number": "+12256858892",
+            "type": "cell"
+        }]
+    }
+
+]
