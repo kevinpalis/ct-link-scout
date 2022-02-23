@@ -1,8 +1,8 @@
 # Link Scout #
 
-This is a simple application that takes in a person_id and searches all connections via two main criteria:
-1. A person is a connection if he/she worked in the same company and their timelines overlapped by at least
-    6 months (ie. 182.5 days)
+This is a simple application that takes in a **person_id** and searches all connections via two main criteria:
+
+1. A person is a connection if he/she worked in the same company and their timelines overlapped by at least 6 months (ie. 182.5 days)
 2. A person is a connection if either one has the others phone number in their list of contacts.
 
 The data comes in the form of 2 JSON files: persons.json and contacts.json.
@@ -29,7 +29,10 @@ There is a pre-built docker image in Dockerhub - which means you don't even need
 
 If you really want to build from source, here are the steps:
 
+## Running the tests
 
-### Questions/Clarifications ###
+Simply run pytest to run both integration tests and unit tests:
+
+## Questions/Clarifications ###
 Please contact:
 * Kevin Palis <kevin.palis@gmail.com>
